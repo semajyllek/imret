@@ -1,44 +1,180 @@
-#pragma once
-#include <opencv2/opencv.hpp>
-#include <faiss/IndexBinaryIVF.h>
-#include <faiss/IndexBinaryFlat.h>
-#include <unordered_map>
-#include <vector>
-#include <string>
-#include <memory>
-#include "imret.hpp"
-#include "extractor.hpp"
+#include "vault.hpp"
+#include <iostream>
+#include <algorithm>
+#include <faiss/index_io.h>
+#include <fstream>
+#include <stdexcept>
 
-class Vault {
-private:
-    OrbConfig config;
-    FeatureExtractor extractor;
-    
-    // FAISS Indices
-    std::unique_ptr<faiss::IndexBinaryFlat> quantizer;
-    std::unique_ptr<faiss::IndexBinaryIVF> index;
-    
-    // Memory mapping
-    std::unordered_map<faiss::idx_t, std::string> id_to_label;
-    faiss::idx_t next_id = 0;
-    
-    // Temporary accumulation buffer for training
-    std::vector<uint8_t> feature_buffer;
-    std::vector<faiss::idx_t> id_buffer;
 
-public:
-    Vault(const OrbConfig& conf);
-    
-    // Step 1: Accumulate images into RAM
-    void add(const cv::Mat& image, const std::string& label);
-    
-    // Step 2: Train Voronoi cells and push to index
-    void build();
-    
-    // Step 3: Run the tiered query
-    MatchResult search(const cv::Mat& image);
+Vault::Vault(const OrbConfig& conf) : config(conf), extractor(conf) {
+    // 256 bits = 32 bytes (ORB standard)
+    int d = 256; 
+    // We will determine the number of clusters dynamically during build() based on data size
+}
 
-    void save(const std::string& prefix);
-    void load(const std::string& prefix);
+void Vault::add(const cv::Mat& image, const std::string& label) {
+    cv::Mat descriptors = extractor.extract(image);
+    if (descriptors.empty()) return;
 
-};
+    // Record the label in our hash map
+    imret_idx_t current_id = next_id++;
+    id_to_label[current_id] = label;
+
+    // Append to our accumulation buffer
+    int num_features = descriptors.rows;
+    feature_buffer.insert(feature_buffer.end(), 
+                          descriptors.data, 
+                          descriptors.data + (num_features * 32));
+    
+    for(int i = 0; i < num_features; i++) {
+        id_buffer.push_back(current_id);
+    }
+}
+
+
+
+void Vault::build() {
+    int total_features = id_buffer.size();
+    if (total_features == 0) return;
+
+    // 1. Determine clusters (aim for ~39 features per centroid, maxing out at 4096)
+    int nlist = std::min(4096, std::max(1, total_features / 39));
+    int d = 256; // 256 bits = 32 bytes (ORB standard dimension)
+    
+    // 2. Initialize the Quantizer (The map of the cluster centers)
+    // IndexBinaryFlat does a brute-force search across the centroids to find the closest one
+    quantizer = std::make_unique<faiss::IndexBinaryFlat>(d);
+
+    // 3. Initialize the main IVF index, linking it to the quantizer
+    index = std::make_unique<faiss::IndexBinaryIVF>(quantizer.get(), d, nlist);
+
+    // 4. Train the Voronoi cells 
+    // This finds the optimal 'nlist' cluster centers for our binary dataset
+    index->train(total_features, feature_buffer.data());
+
+    // 5. Add the actual vectors into their assigned cells
+    index->add_with_ids(total_features, feature_buffer.data(), id_buffer.data());
+
+    // 6. Clear the RAM buffer now that FAISS owns the data
+    feature_buffer.clear();
+    id_buffer.clear();
+}
+
+
+
+MatchResult Vault::search(const cv::Mat& image) {
+    cv::Mat descriptors = extractor.extract(image);
+    if (descriptors.empty()) {
+        return MatchResult{"Unknown", 0.0f, false};
+    }
+
+    int nq = descriptors.rows;
+    std::vector<int32_t> distances(nq);
+    std::vector<imret_idx_t> labels(nq);
+
+    // --- Tier 1: Fast Search ---
+    index->nprobe = config.fast_cells;
+    index->search(nq, descriptors.data, 1, distances.data(), labels.data());
+
+    auto tally_votes = [&]() -> std::pair<imret_idx_t, int> {
+        std::unordered_map<imret_idx_t, int> tallies;
+        int max_votes = 0;
+        imret_idx_t best_id = -1;
+
+        for(int i = 0; i < nq; i++) {
+            if (distances[i] <= config.max_hamming_distance && labels[i] != -1) {
+                int current_votes = ++tallies[labels[i]];
+                if (current_votes > max_votes) {
+                    max_votes = current_votes;
+                    best_id = labels[i];
+                }
+            }
+        }
+        return {best_id, max_votes};
+    };
+
+    auto [best_id, max_votes] = tally_votes();
+    float confidence = (float)max_votes / nq;
+    bool fallback = false;
+
+    // --- Tier 2: Deep Fallback ---
+    if (confidence < 0.15f) {
+        fallback = true;
+        index->nprobe = config.deep_cells;
+        index->search(nq, descriptors.data, 1, distances.data(), labels.data());
+        
+        auto fallback_result = tally_votes();
+        best_id = fallback_result.first;
+        max_votes = fallback_result.second;
+        confidence = (float)max_votes / nq;
+    }
+
+    if (best_id == -1) {
+        return MatchResult{"Unknown", 0.0f, fallback};
+    }
+
+    return MatchResult{id_to_label[best_id], confidence, fallback};
+}
+
+
+// --- SAVE ---
+void Vault::save(const std::string& prefix) {
+    if (!index) {
+        throw std::runtime_error("Cannot save an empty or unbuilt vault.");
+    }
+
+    // 1. Save the FAISS Index
+    faiss::write_index_binary(index.get(), (prefix + ".faiss").c_str());
+
+    // 2. Save the Metadata (Binary Format)
+    std::ofstream meta_out(prefix + ".meta", std::ios::binary);
+    
+    meta_out.write(reinterpret_cast<const char*>(&config), sizeof(OrbConfig));
+    meta_out.write(reinterpret_cast<const char*>(&next_id), sizeof(imret_idx_t));
+
+    size_t map_size = id_to_label.size();
+    meta_out.write(reinterpret_cast<const char*>(&map_size), sizeof(size_t));
+
+    for (const auto& pair : id_to_label) {
+        meta_out.write(reinterpret_cast<const char*>(&pair.first), sizeof(imret_idx_t));
+        
+        size_t str_len = pair.second.size();
+        meta_out.write(reinterpret_cast<const char*>(&str_len), sizeof(size_t));
+        meta_out.write(pair.second.c_str(), str_len);
+    }
+    meta_out.close();
+}
+
+// --- LOAD ---
+void Vault::load(const std::string& prefix) {
+    // 1. Load the FAISS Index
+    faiss::IndexBinary* raw_index = faiss::read_index_binary((prefix + ".faiss").c_str());
+    index.reset(dynamic_cast<faiss::IndexBinaryIVF*>(raw_index));
+
+    // 2. Load the Metadata
+    std::ifstream meta_in(prefix + ".meta", std::ios::binary);
+    if (!meta_in) {
+        throw std::runtime_error("Could not find metadata file: " + prefix + ".meta");
+    }
+
+    meta_in.read(reinterpret_cast<char*>(&config), sizeof(OrbConfig));
+    meta_in.read(reinterpret_cast<char*>(&next_id), sizeof(imret_idx_t));
+
+    size_t map_size;
+    meta_in.read(reinterpret_cast<char*>(&map_size), sizeof(size_t));
+
+    id_to_label.clear();
+    for (size_t i = 0; i < map_size; i++) {
+        imret_idx_t key;
+        meta_in.read(reinterpret_cast<char*>(&key), sizeof(imret_idx_t));
+
+        size_t str_len;
+        meta_in.read(reinterpret_cast<char*>(&str_len), sizeof(size_t));
+        
+        std::string val(str_len, '\0');
+        meta_in.read(&val[0], str_len);
+
+        id_to_label[key] = val;
+    }
+    meta_in.close();
+}

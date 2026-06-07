@@ -17,7 +17,7 @@ void Vault::add(const cv::Mat& image, const std::string& label) {
     if (descriptors.empty()) return;
 
     // Record the label in our hash map
-    faiss::idx_t current_id = next_id++;
+    imret_idx_t current_id = next_id++;
     id_to_label[current_id] = label;
 
     // Append to our accumulation buffer
@@ -70,16 +70,16 @@ MatchResult Vault::search(const cv::Mat& image) {
 
     int nq = descriptors.rows;
     std::vector<int32_t> distances(nq);
-    std::vector<faiss::idx_t> labels(nq);
+    std::vector<imret_idx_t> labels(nq);
 
     // --- Tier 1: Fast Search ---
     index->nprobe = config.fast_cells;
     index->search(nq, descriptors.data, 1, distances.data(), labels.data());
 
-    auto tally_votes = [&]() -> std::pair<faiss::idx_t, int> {
-        std::unordered_map<faiss::idx_t, int> tallies;
+    auto tally_votes = [&]() -> std::pair<imret_idx_t, int> {
+        std::unordered_map<imret_idx_t, int> tallies;
         int max_votes = 0;
-        faiss::idx_t best_id = -1;
+        imret_idx_t best_id = -1;
 
         for(int i = 0; i < nq; i++) {
             if (distances[i] <= config.max_hamming_distance && labels[i] != -1) {
@@ -130,13 +130,13 @@ void Vault::save(const std::string& prefix) {
     std::ofstream meta_out(prefix + ".meta", std::ios::binary);
     
     meta_out.write(reinterpret_cast<const char*>(&config), sizeof(OrbConfig));
-    meta_out.write(reinterpret_cast<const char*>(&next_id), sizeof(faiss::idx_t));
+    meta_out.write(reinterpret_cast<const char*>(&next_id), sizeof(imret_idx_t));
 
     size_t map_size = id_to_label.size();
     meta_out.write(reinterpret_cast<const char*>(&map_size), sizeof(size_t));
 
     for (const auto& pair : id_to_label) {
-        meta_out.write(reinterpret_cast<const char*>(&pair.first), sizeof(faiss::idx_t));
+        meta_out.write(reinterpret_cast<const char*>(&pair.first), sizeof(imret_idx_t));
         
         size_t str_len = pair.second.size();
         meta_out.write(reinterpret_cast<const char*>(&str_len), sizeof(size_t));
@@ -158,15 +158,15 @@ void Vault::load(const std::string& prefix) {
     }
 
     meta_in.read(reinterpret_cast<char*>(&config), sizeof(OrbConfig));
-    meta_in.read(reinterpret_cast<char*>(&next_id), sizeof(faiss::idx_t));
+    meta_in.read(reinterpret_cast<char*>(&next_id), sizeof(imret_idx_t));
 
     size_t map_size;
     meta_in.read(reinterpret_cast<char*>(&map_size), sizeof(size_t));
 
     id_to_label.clear();
     for (size_t i = 0; i < map_size; i++) {
-        faiss::idx_t key;
-        meta_in.read(reinterpret_cast<char*>(&key), sizeof(faiss::idx_t));
+        imret_idx_t key;
+        meta_in.read(reinterpret_cast<char*>(&key), sizeof(imret_idx_t));
 
         size_t str_len;
         meta_in.read(reinterpret_cast<char*>(&str_len), sizeof(size_t));
