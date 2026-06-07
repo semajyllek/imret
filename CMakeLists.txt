@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenCV REQUIRED)
+find_package(OpenMP REQUIRED)
 find_package(faiss REQUIRED)
 
 # 1. Build the core engine as a static library
