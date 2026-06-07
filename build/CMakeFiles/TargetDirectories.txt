@@ -1,0 +1,4 @@
+/Users/jameskelly/Documents/imret/build/CMakeFiles/imret_core.dir
+/Users/jameskelly/Documents/imret/build/CMakeFiles/imret_cli.dir
+/Users/jameskelly/Documents/imret/build/CMakeFiles/edit_cache.dir
+/Users/jameskelly/Documents/imret/build/CMakeFiles/rebuild_cache.dir

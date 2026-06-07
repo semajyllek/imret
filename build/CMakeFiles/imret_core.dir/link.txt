@@ -1,0 +1,2 @@
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc libimret_core.a CMakeFiles/imret_core.dir/src/extractor.cpp.o CMakeFiles/imret_core.dir/src/vault.cpp.o
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib libimret_core.a
