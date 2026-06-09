@@ -2,16 +2,29 @@
 """
 Benchmark imret against OpenCV BFMatcher (exact Hamming) and imagehash (perceptual).
 
-All three use the same synthetic image collection. Queries are re-searches of
-ingested images, so accuracy reflects how well each method retrieves what it indexed.
+Two datasets:
+  synthetic  — random geometric images; all methods score ~100% accuracy (speed comparison only)
+  wikiart    — real paintings streamed from HuggingFace; exposes accuracy differences
+               when combined with a query transform
+
+Five query transforms (applied to the query image only; indexed images are originals):
+  none         — exact re-query; all methods trivially accurate
+  affine       — random rotation ±15° and scale 0.80–1.0
+  perspective  — random keystone warp up to 10% corner displacement
+  book         — perspective warp + cream page border (photo from a book)
+  wall         — perspective warp + grey wall border + slight blur (gallery photo)
+
+The meaningful comparison is --dataset wikiart --transform wall (or book).
+imagehash collapses because the border pixels dominate the DCT; imret's interior
+ORB keypoints are unaffected.
 
 Usage:
     pip install imret opencv-python-headless numpy
-    pip install imagehash Pillow        # optional, enables the imagehash column
-    pip install matplotlib              # optional, enables --plot
+    pip install imagehash Pillow datasets   # optional / for wikiart
+    pip install matplotlib                  # optional, for --plot
 
     python benchmark.py
-    python benchmark.py --sizes 100,500,1000,5000 --queries 20 --plot
+    python benchmark.py --dataset wikiart --transform wall --sizes 100,500,1000 --plot
 """
 
 import argparse
@@ -49,9 +62,90 @@ def _make_image(seed: int, size: int = 256) -> np.ndarray:
     return cv2.add(img, noise)
 
 
+# ── WikiArt loader ─────────────────────────────────────────────────────────────
+
+def _load_wikiart(n: int) -> tuple[list[np.ndarray], list[str]]:
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        raise ImportError("pip install datasets to use --dataset wikiart")
+    print(f"  Streaming {n:,} WikiArt images from HuggingFace...", flush=True)
+    ds = load_dataset("huggan/wikiart", split="train", streaming=True)
+    images: list[np.ndarray] = []
+    labels: list[str] = []
+    for i, item in enumerate(ds):
+        if i >= n:
+            break
+        rgb  = np.array(item["image"].convert("RGB"))
+        gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+        images.append(gray)
+        labels.append(f"wikiart_{i:06d}")
+        if (i + 1) % 200 == 0:
+            print(f"  {i + 1}/{n}", flush=True)
+    print(f"  Loaded {len(images):,} images.", flush=True)
+    return images, labels
+
+
+# ── query transforms ───────────────────────────────────────────────────────────
+
+def _affine_jitter(gray: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    h, w = gray.shape
+    angle = float(rng.uniform(-15, 15))
+    scale = float(rng.uniform(0.80, 1.0))
+    M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, scale)
+    return cv2.warpAffine(gray, M, (w, h), borderMode=cv2.BORDER_REPLICATE)
+
+
+def _perspective_warp(gray: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    h, w = gray.shape
+    lim = int(min(h, w) * 0.10)
+    def jitter(): return int(rng.integers(0, lim + 1))
+    src = np.float32([[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]])
+    dst = np.float32([
+        [jitter(),         jitter()],
+        [w - 1 - jitter(), jitter()],
+        [w - 1 - jitter(), h - 1 - jitter()],
+        [jitter(),         h - 1 - jitter()],
+    ])
+    M = cv2.getPerspectiveTransform(src, dst)
+    return cv2.warpPerspective(gray, M, (w, h))
+
+
+def _book_page(gray: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    warped = _perspective_warp(gray, rng)
+    h, w = warped.shape
+    bw = int(w * float(rng.uniform(0.10, 0.20)))
+    bh = int(h * float(rng.uniform(0.10, 0.20)))
+    canvas = np.full((h + 2 * bh, w + 2 * bw), int(rng.integers(210, 246)), dtype=np.uint8)
+    canvas[bh:bh + h, bw:bw + w] = warped
+    return canvas
+
+
+def _wall_photo(gray: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    warped = _perspective_warp(gray, rng)
+    h, w = warped.shape
+    bw = int(w * float(rng.uniform(0.05, 0.15)))
+    bh = int(h * float(rng.uniform(0.05, 0.15)))
+    canvas = np.full((h + 2 * bh, w + 2 * bw), int(rng.integers(100, 181)), dtype=np.uint8)
+    canvas[bh:bh + h, bw:bw + w] = warped
+    k = int(rng.integers(0, 2)) * 2 + 1
+    if k > 1:
+        canvas = cv2.GaussianBlur(canvas, (k, k), 0)
+    return canvas
+
+
+_TRANSFORMS = {
+    "none":        lambda g, rng: g,
+    "affine":      _affine_jitter,
+    "perspective": _perspective_warp,
+    "book":        _book_page,
+    "wall":        _wall_photo,
+}
+
+
 # ── BFMatcher baseline ─────────────────────────────────────────────────────────
 
-_BF_CHUNK = 32767  # OpenCV BFMatcher internal row limit per matrix
+_BF_CHUNK = 32767
 
 
 class _BFMatcherBaseline:
@@ -62,7 +156,7 @@ class _BFMatcherBaseline:
         self._max_hamming = cfg.max_hamming_distance
         self._all_descs: list = []
         self._all_labels: list = []
-        self._chunks: list = []  # list of (desc_matrix, labels_slice)
+        self._chunks: list = []
         self._bf = cv2.BFMatcher(cv2.NORM_HAMMING)
 
     def add(self, image: np.ndarray, label: str) -> None:
@@ -108,8 +202,7 @@ try:
             self._db: list = []
 
         def add(self, image: np.ndarray, label: str) -> None:
-            pil = _PILImage.fromarray(image)
-            self._db.append((label, imagehash.phash(pil, hash_size=self._hash_size)))
+            self._db.append((label, imagehash.phash(_PILImage.fromarray(image), hash_size=self._hash_size)))
 
         def build(self) -> None:
             pass
@@ -117,53 +210,18 @@ try:
         def search(self, image: np.ndarray) -> tuple[str, float]:
             if not self._db:
                 return "Unknown", 0.0
-            pil = _PILImage.fromarray(image)
-            qh = imagehash.phash(pil, hash_size=self._hash_size)
+            qh = imagehash.phash(_PILImage.fromarray(image), hash_size=self._hash_size)
             best_label, best_dist = None, float("inf")
             for label, h in self._db:
                 d = qh - h
                 if d < best_dist:
                     best_dist, best_label = d, label
-            confidence = max(0.0, 1.0 - best_dist / self._hash_size ** 2)
-            return best_label, confidence
+            return best_label, max(0.0, 1.0 - best_dist / self._hash_size ** 2)
 
     _IMAGEHASH_AVAILABLE = True
 
 except ImportError:
     _IMAGEHASH_AVAILABLE = False
-
-
-# ── helpers ────────────────────────────────────────────────────────────────────
-
-def _pct(data: list[float], p: float) -> float:
-    if not data:
-        return float("nan")
-    s = sorted(data)
-    k = (len(s) - 1) * p / 100.0
-    lo, hi = int(k), min(int(k) + 1, len(s) - 1)
-    return s[lo] + (s[hi] - s[lo]) * (k - lo)
-
-
-def _timed_build(engine, images, labels) -> float:
-    t0 = time.perf_counter()
-    for img, lbl in zip(images, labels):
-        engine.add(img, lbl)
-    engine.build()
-    return time.perf_counter() - t0
-
-
-def _timed_queries(engine, images, labels, n_queries) -> tuple[float, float, float]:
-    q_images = images[:n_queries]
-    q_labels = labels[:n_queries]
-    latencies = []
-    correct = 0
-    for img, lbl in zip(q_images, q_labels):
-        t0 = time.perf_counter()
-        result_label, _ = engine.search(img)
-        latencies.append((time.perf_counter() - t0) * 1000)
-        if result_label == lbl:
-            correct += 1
-    return correct / n_queries, _pct(latencies, 50), _pct(latencies, 95)
 
 
 # ── imret wrappers ─────────────────────────────────────────────────────────────
@@ -187,7 +245,7 @@ class _ImretBatchWrapper:
     """Uses add_batch() — parallel ORB extraction via OpenMP."""
 
     def __init__(self, cfg):
-        self._vault = imret.Vault(cfg)
+        self._vault  = imret.Vault(cfg)
         self._images: list = []
         self._labels: list = []
 
@@ -204,51 +262,62 @@ class _ImretBatchWrapper:
         return r.label, r.confidence
 
 
+# ── helpers ────────────────────────────────────────────────────────────────────
+
+def _pct(data: list[float], p: float) -> float:
+    if not data:
+        return float("nan")
+    s = sorted(data)
+    k = (len(s) - 1) * p / 100.0
+    lo, hi = int(k), min(int(k) + 1, len(s) - 1)
+    return s[lo] + (s[hi] - s[lo]) * (k - lo)
+
+
+def _timed_build(engine, images, labels) -> float:
+    t0 = time.perf_counter()
+    for img, lbl in zip(images, labels):
+        engine.add(img, lbl)
+    engine.build()
+    return time.perf_counter() - t0
+
+
+def _timed_queries(engine, images, labels, n_queries, transform_fn) -> tuple[float, float, float]:
+    rng       = np.random.default_rng(42)
+    q_images  = images[:n_queries]
+    q_labels  = labels[:n_queries]
+    latencies = []
+    correct   = 0
+    for img, lbl in zip(q_images, q_labels):
+        query = transform_fn(img, rng)
+        t0 = time.perf_counter()
+        result_label, _ = engine.search(query)
+        latencies.append((time.perf_counter() - t0) * 1000)
+        if result_label == lbl:
+            correct += 1
+    return correct / n_queries, _pct(latencies, 50), _pct(latencies, 95)
+
+
 # ── benchmark ──────────────────────────────────────────────────────────────────
 
-def run_one(n: int, n_queries: int, cfg: imret.OrbConfig) -> dict:
+def run_one(n: int, n_queries: int, cfg: imret.OrbConfig,
+            images: list, labels: list, transform_fn) -> dict:
     n_queries = min(n_queries, n)
-    images = [_make_image(i) for i in range(n)]
-    labels = [f"img_{i:06d}" for i in range(n)]
-
+    imgs = images[:n]
+    lbls = labels[:n]
     row: dict = {"n": n}
 
-    # imret (single add)
-    tracemalloc.start()
-    engine = _ImretWrapper(cfg)
-    build_s = _timed_build(engine, images, labels)
-    mem_mb = tracemalloc.get_traced_memory()[1] / 1024 / 1024
-    tracemalloc.stop()
-    acc, p50, p95 = _timed_queries(engine, images, labels, n_queries)
-    row["imret"] = {"build_s": build_s, "acc": acc, "p50_ms": p50, "p95_ms": p95, "mem_mb": mem_mb}
-
-    # imret (add_batch — parallel ORB via OpenMP)
-    tracemalloc.start()
-    batch_engine = _ImretBatchWrapper(cfg)
-    batch_build_s = _timed_build(batch_engine, images, labels)
-    batch_mem_mb = tracemalloc.get_traced_memory()[1] / 1024 / 1024
-    tracemalloc.stop()
-    batch_acc, batch_p50, batch_p95 = _timed_queries(batch_engine, images, labels, n_queries)
-    row["imret-batch"] = {"build_s": batch_build_s, "acc": batch_acc, "p50_ms": batch_p50, "p95_ms": batch_p95, "mem_mb": batch_mem_mb}
-
-    # BFMatcher
-    tracemalloc.start()
-    bf = _BFMatcherBaseline(cfg)
-    bf_build_s = _timed_build(bf, images, labels)
-    bf_mem_mb = tracemalloc.get_traced_memory()[1] / 1024 / 1024
-    tracemalloc.stop()
-    bf_acc, bf_p50, bf_p95 = _timed_queries(bf, images, labels, n_queries)
-    row["bfmatcher"] = {"build_s": bf_build_s, "acc": bf_acc, "p50_ms": bf_p50, "p95_ms": bf_p95, "mem_mb": bf_mem_mb}
-
-    # imagehash (optional)
-    if _IMAGEHASH_AVAILABLE:
+    for key, factory in [
+        ("imret",       lambda: _ImretWrapper(cfg)),
+        ("imret-batch", lambda: _ImretBatchWrapper(cfg)),
+        ("bfmatcher",   lambda: _BFMatcherBaseline(cfg)),
+    ] + ([("imagehash", lambda: _ImageHashBaseline())] if _IMAGEHASH_AVAILABLE else []):
         tracemalloc.start()
-        ih = _ImageHashBaseline()
-        ih_build_s = _timed_build(ih, images, labels)
-        ih_mem_mb = tracemalloc.get_traced_memory()[1] / 1024 / 1024
+        engine    = factory()
+        build_s   = _timed_build(engine, imgs, lbls)
+        mem_mb    = tracemalloc.get_traced_memory()[1] / 1024 / 1024
         tracemalloc.stop()
-        ih_acc, ih_p50, ih_p95 = _timed_queries(ih, images, labels, n_queries)
-        row["imagehash"] = {"build_s": ih_build_s, "acc": ih_acc, "p50_ms": ih_p50, "p95_ms": ih_p95, "mem_mb": ih_mem_mb}
+        acc, p50, p95 = _timed_queries(engine, imgs, lbls, n_queries, transform_fn)
+        row[key] = {"build_s": build_s, "acc": acc, "p50_ms": p50, "p95_ms": p95, "mem_mb": mem_mb}
 
     return row
 
@@ -265,19 +334,19 @@ def _header(methods):
 
 
 def _row(n, data, methods, key, fmt):
-    vals = [f"{n:>{_COL},d}"] + [f"{fmt(data[m][key]):>{_COL}}" for m in methods if m in data]
+    vals = [f"{n:>{_COL},d}"] + [f"{fmt(data[m][key]):>{_COL}}" if m in data else f"{'—':>{_COL}}" for m in methods]
     print("".join(vals))
 
 
-def print_results(rows: list[dict]) -> None:
+def print_results(rows: list[dict], dataset: str, transform: str) -> None:
     methods = ["imret", "imret-batch", "bfmatcher"] + (["imagehash"] if _IMAGEHASH_AVAILABLE else [])
-
-    for metric, key, fmt, label in [
-        ("Accuracy (%)", "acc", lambda v: f"{v * 100:.1f}%", None),
-        ("Search p50 (ms)", "p50_ms", lambda v: f"{v:.2f}", None),
-        ("Search p95 (ms)", "p95_ms", lambda v: f"{v:.2f}", None),
-        ("Build time (s)", "build_s", lambda v: f"{v:.2f}", None),
-        ("Peak memory (MB)", "mem_mb", lambda v: f"{v:.1f}", None),
+    print(f"\ndataset={dataset}  transform={transform}")
+    for metric, key, fmt in [
+        ("Accuracy (%)",    "acc",     lambda v: f"{v * 100:.1f}%"),
+        ("Search p50 (ms)", "p50_ms",  lambda v: f"{v:.2f}"),
+        ("Search p95 (ms)", "p95_ms",  lambda v: f"{v:.2f}"),
+        ("Build time (s)",  "build_s", lambda v: f"{v:.2f}"),
+        ("Peak mem (MB)",   "mem_mb",  lambda v: f"{v:.1f}"),
     ]:
         print(f"\n{metric}")
         _header(methods)
@@ -285,27 +354,29 @@ def print_results(rows: list[dict]) -> None:
             _row(row["n"], row, methods, key, fmt)
 
 
-def plot_results(rows: list[dict]) -> None:
+def plot_results(rows: list[dict], dataset: str, transform: str) -> None:
     try:
+        import matplotlib
+        matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError:
         print("\nmatplotlib not installed — skipping plot.")
         return
 
     methods = ["imret", "imret-batch", "bfmatcher"] + (["imagehash"] if _IMAGEHASH_AVAILABLE else [])
-    colors = {"imret": "#1f77b4", "imret-batch": "#17becf", "bfmatcher": "#ff7f0e", "imagehash": "#2ca02c"}
-    ns = [r["n"] for r in rows]
+    colors  = {"imret": "#1f77b4", "imret-batch": "#17becf", "bfmatcher": "#ff7f0e", "imagehash": "#2ca02c"}
+    ns      = [r["n"] for r in rows]
 
-    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
-    fig.suptitle("imret vs alternatives — synthetic image collection")
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    fig.suptitle(f"imret vs alternatives — dataset={dataset}  transform={transform}", fontsize=11)
 
     for ax, key, ylabel in [
         (axes[0], "p50_ms", "Search latency p50 (ms)"),
-        (axes[1], "acc", "Accuracy (re-query)"),
-        (axes[2], "build_s", "Build time (s)"),
+        (axes[1], "acc",    "Accuracy (re-query)"),
+        (axes[2], "build_s","Build time (s)"),
     ]:
         for m in methods:
-            vals = [r[m][key] for r in rows if m in r]
+            vals  = [r[m][key] for r in rows if m in r]
             scale = 100 if key == "acc" else 1
             ax.plot(ns, [v * scale for v in vals], marker="o", label=m, color=colors.get(m))
         ax.set_xlabel("Collection size")
@@ -315,7 +386,7 @@ def plot_results(rows: list[dict]) -> None:
         ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    out = "benchmark_results.png"
+    out = f"benchmark_{dataset}_{transform}.png"
     plt.savefig(out, dpi=150)
     print(f"\nPlot saved to {out}")
 
@@ -324,35 +395,45 @@ def plot_results(rows: list[dict]) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--sizes", default="100,500,1000,2000",
-                        help="Comma-separated collection sizes (default: 100,500,1000,2000)")
-    parser.add_argument("--queries", type=int, default=20,
-                        help="Number of queries per size (default: 20)")
-    parser.add_argument("--max-features", type=int, default=500)
+    parser.add_argument("--sizes",       default="100,500,1000,2000")
+    parser.add_argument("--queries",     type=int, default=20)
+    parser.add_argument("--max-features",type=int, default=500)
     parser.add_argument("--max-hamming", type=int, default=45)
-    parser.add_argument("--plot", action="store_true", help="Save a matplotlib chart")
+    parser.add_argument("--dataset",     default="synthetic", choices=["synthetic", "wikiart"])
+    parser.add_argument("--transform",   default="none",      choices=list(_TRANSFORMS))
+    parser.add_argument("--plot",        action="store_true")
     args = parser.parse_args()
 
     sizes = [int(s.strip()) for s in args.sizes.split(",")]
+    max_n = max(sizes)
 
     cfg = imret.OrbConfig()
-    cfg.max_features = args.max_features
+    cfg.max_features        = args.max_features
     cfg.max_hamming_distance = args.max_hamming
 
-    print(f"imret benchmark — {len(sizes)} sizes, {args.queries} queries each")
+    transform_fn = _TRANSFORMS[args.transform]
+
+    print(f"imret benchmark  dataset={args.dataset}  transform={args.transform}  "
+          f"{len(sizes)} sizes  {args.queries} queries each")
     if not _IMAGEHASH_AVAILABLE:
-        print("(imagehash not installed — skipping that column; pip install imagehash Pillow to include it)")
+        print("(imagehash not installed — pip install imagehash Pillow to include it)")
+
+    if args.dataset == "wikiart":
+        all_images, all_labels = _load_wikiart(max_n)
+    else:
+        all_images = [_make_image(i) for i in range(max_n)]
+        all_labels = [f"img_{i:06d}" for i in range(max_n)]
 
     rows = []
     for n in sizes:
-        print(f"\nRunning N={n:,}...", end="", flush=True)
-        rows.append(run_one(n, args.queries, cfg))
+        print(f"\nN={n:,}...", end="", flush=True)
+        rows.append(run_one(n, args.queries, cfg, all_images, all_labels, transform_fn))
         print(" done")
 
-    print_results(rows)
+    print_results(rows, args.dataset, args.transform)
 
     if args.plot:
-        plot_results(rows)
+        plot_results(rows, args.dataset, args.transform)
 
 
 if __name__ == "__main__":
