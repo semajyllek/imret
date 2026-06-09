@@ -51,6 +51,10 @@ class Vault:
         """Saves the built vault to <prefix>.faiss and <prefix>.meta."""
         self._engine.save(prefix)
 
+    def stats(self) -> dict:
+        """Returns n_images, n_features, nlist, is_built."""
+        return self._engine.stats()
+
     def load(self, prefix: str) -> None:
         """Loads a vault from <prefix>.faiss and <prefix>.meta."""
         self._engine.load(prefix)

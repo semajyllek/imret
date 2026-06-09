@@ -57,5 +57,14 @@ PYBIND11_MODULE(_core, m) {
             return self.search(numpy_uint8_to_cv_mat(img));
         })
         .def("save", &Vault::save)
-        .def("load", &Vault::load);
+        .def("load", &Vault::load)
+        .def("stats", [](const Vault& self) {
+            auto s = self.stats();
+            py::dict d;
+            d["n_images"]   = s.n_images;
+            d["n_features"] = s.n_features;
+            d["nlist"]      = s.nlist;
+            d["is_built"]   = s.is_built;
+            return d;
+        });
 }

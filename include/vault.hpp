@@ -31,20 +31,21 @@ private:
 
     bool is_built = false;
 
+    struct Stats {
+        int     n_images;
+        int64_t n_features;
+        int     nlist;
+        bool    is_built;
+    };
+
 public:
     Vault(const OrbConfig& conf);
-    
-    // Step 1: Accumulate images into RAM
+
     void add(const cv::Mat& image, const std::string& label);
-
-    // Step 1 (parallel): extract features from multiple images concurrently via OpenMP
     void add_batch(const std::vector<cv::Mat>& images, const std::vector<std::string>& labels);
-
-    // Step 2: Train Voronoi cells and push to index
     void build();
-    
-    // Step 3: Run the tiered query
     MatchResult search(const cv::Mat& image);
+    Stats stats() const;
 
     void save(const std::string& prefix);
     void load(const std::string& prefix);

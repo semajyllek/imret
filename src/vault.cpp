@@ -146,6 +146,15 @@ MatchResult Vault::search(const cv::Mat& image) {
 }
 
 
+Vault::Stats Vault::stats() const {
+    return Stats{
+        static_cast<int>(id_to_label.size()),
+        static_cast<int64_t>(id_buffer.size()),
+        index ? static_cast<int>(index->nlist) : 0,
+        is_built,
+    };
+}
+
 // --- SAVE ---
 void Vault::save(const std::string& prefix) {
     if (!index) {
