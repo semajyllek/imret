@@ -4,13 +4,10 @@
 #include <faiss/index_io.h>
 #include <fstream>
 #include <stdexcept>
+#include <omp.h>
 
 
-Vault::Vault(const OrbConfig& conf) : config(conf), extractor(conf) {
-    // 256 bits = 32 bytes (ORB standard)
-    int d = 256; 
-    // We will determine the number of clusters dynamically during build() based on data size
-}
+Vault::Vault(const OrbConfig& conf) : config(conf), extractor(conf) {}
 
 void Vault::add(const cv::Mat& image, const std::string& label) {
     cv::Mat descriptors = extractor.extract(image);
@@ -33,13 +30,44 @@ void Vault::add(const cv::Mat& image, const std::string& label) {
 
 
 
+void Vault::add_batch(const std::vector<cv::Mat>& images,
+                      const std::vector<std::string>& labels) {
+    int n = static_cast<int>(images.size());
+    if (n == 0) return;
+
+    // One FeatureExtractor per thread — cv::ORB is not thread-safe across instances
+    int num_threads = omp_get_max_threads();
+    std::vector<FeatureExtractor> thread_ex;
+    thread_ex.reserve(num_threads);
+    for (int t = 0; t < num_threads; t++)
+        thread_ex.emplace_back(config);
+
+    std::vector<cv::Mat> results(n);
+
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < n; i++)
+        results[i] = thread_ex[omp_get_thread_num()].extract(images[i]);
+
+    // Sequential append — no locking needed
+    for (int i = 0; i < n; i++) {
+        if (results[i].empty()) continue;
+        imret_idx_t current_id = next_id++;
+        id_to_label[current_id] = labels[i];
+        int num_features = results[i].rows;
+        feature_buffer.insert(feature_buffer.end(),
+                              results[i].data,
+                              results[i].data + (num_features * 32));
+        for (int j = 0; j < num_features; j++)
+            id_buffer.push_back(current_id);
+    }
+}
+
 void Vault::build() {
     int total_features = id_buffer.size();
     if (total_features == 0) return;
 
-    // 1. Determine clusters (aim for ~39 features per centroid, maxing out at 4096)
+    const int d = 256; // 256 bits = 32 bytes (ORB descriptor dimension)
     int nlist = std::min(4096, std::max(1, total_features / 39));
-    int d = 256; // 256 bits = 32 bytes (ORB standard dimension)
     
     // 2. Initialize the Quantizer (The map of the cluster centers)
     // IndexBinaryFlat does a brute-force search across the centroids to find the closest one
@@ -55,14 +83,15 @@ void Vault::build() {
     // 5. Add the actual vectors into their assigned cells
     index->add_with_ids(total_features, feature_buffer.data(), id_buffer.data());
 
-    // 6. Clear the RAM buffer now that FAISS owns the data
-    feature_buffer.clear();
-    id_buffer.clear();
+    is_built = true;
 }
 
 
 
 MatchResult Vault::search(const cv::Mat& image) {
+    if (!is_built)
+        throw std::runtime_error("Must call build() before search().");
+
     cv::Mat descriptors = extractor.extract(image);
     if (descriptors.empty()) {
         return MatchResult{"Unknown", 0.0f, false};
@@ -98,7 +127,7 @@ MatchResult Vault::search(const cv::Mat& image) {
     bool fallback = false;
 
     // --- Tier 2: Deep Fallback ---
-    if (confidence < 0.15f) {
+    if (confidence < config.confidence_threshold) {
         fallback = true;
         index->nprobe = config.deep_cells;
         index->search(nq, descriptors.data, 1, distances.data(), labels.data());
@@ -177,4 +206,5 @@ void Vault::load(const std::string& prefix) {
         id_to_label[key] = val;
     }
     meta_in.close();
+    is_built = true;
 }

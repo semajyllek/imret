@@ -922,8 +922,6 @@ CMakeFiles/imret_cli.dir/main.cpp.o: \
   /opt/homebrew/Cellar/opencv/4.13.0_12/include/opencv4/opencv2/video/tracking.hpp \
   /opt/homebrew/Cellar/opencv/4.13.0_12/include/opencv4/opencv2/video/background_segm.hpp \
   /Users/jameskelly/Documents/imret/include/vault.hpp \
-  /opt/homebrew/include/faiss/IndexBinaryIVF.h \
-  /opt/homebrew/include/faiss/Clustering.h \
   /opt/homebrew/include/faiss/Index.h \
   /opt/homebrew/include/faiss/MetricType.h \
   /opt/homebrew/include/faiss/impl/FaissAssert.h \
@@ -935,6 +933,8 @@ CMakeFiles/imret_cli.dir/main.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk/usr/include/inttypes.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk/usr/include/_inttypes.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk/usr/include/xlocale/_inttypes.h \
+  /opt/homebrew/include/faiss/IndexBinaryIVF.h \
+  /opt/homebrew/include/faiss/Clustering.h \
   /opt/homebrew/include/faiss/impl/ClusteringInitialization.h \
   /opt/homebrew/include/faiss/IndexBinary.h \
   /opt/homebrew/include/faiss/IndexIVF.h \

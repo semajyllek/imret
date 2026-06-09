@@ -153,6 +153,7 @@ imret_cli: /opt/homebrew/Cellar/opencv/4.13.0_12/lib/libopencv_photo.4.13.0.dyli
 imret_cli: /opt/homebrew/Cellar/opencv/4.13.0_12/lib/libopencv_imgproc.4.13.0.dylib
 imret_cli: /opt/homebrew/Cellar/opencv/4.13.0_12/lib/libopencv_core.4.13.0.dylib
 imret_cli: /opt/homebrew/lib/libfaiss.dylib
+imret_cli: /opt/homebrew/opt/libomp/lib/libomp.dylib
 imret_cli: CMakeFiles/imret_cli.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/jameskelly/Documents/imret/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable imret_cli"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/imret_cli.dir/link.txt --verbose=$(VERBOSE)

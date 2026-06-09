@@ -1,0 +1,327 @@
+Start testing: Jun 08 23:37 PDT
+----------------------------------------------------------
+1/12 Testing: FeatureExtractor.BlankImageReturnsEmpty
+1/12 Test: FeatureExtractor.BlankImageReturnsEmpty
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=FeatureExtractor.BlankImageReturnsEmpty" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"FeatureExtractor.BlankImageReturnsEmpty" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = FeatureExtractor.BlankImageReturnsEmpty
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from FeatureExtractor
+[ RUN      ] FeatureExtractor.BlankImageReturnsEmpty
+[       OK ] FeatureExtractor.BlankImageReturnsEmpty (0 ms)
+[----------] 1 test from FeatureExtractor (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Passed.
+"FeatureExtractor.BlankImageReturnsEmpty" end time: Jun 08 23:37 PDT
+"FeatureExtractor.BlankImageReturnsEmpty" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/12 Testing: FeatureExtractor.TexturedImageReturnsDescriptors
+2/12 Test: FeatureExtractor.TexturedImageReturnsDescriptors
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=FeatureExtractor.TexturedImageReturnsDescriptors" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"FeatureExtractor.TexturedImageReturnsDescriptors" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = FeatureExtractor.TexturedImageReturnsDescriptors
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from FeatureExtractor
+[ RUN      ] FeatureExtractor.TexturedImageReturnsDescriptors
+[       OK ] FeatureExtractor.TexturedImageReturnsDescriptors (29 ms)
+[----------] 1 test from FeatureExtractor (29 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (29 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.15 sec
+----------------------------------------------------------
+Test Passed.
+"FeatureExtractor.TexturedImageReturnsDescriptors" end time: Jun 08 23:37 PDT
+"FeatureExtractor.TexturedImageReturnsDescriptors" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/12 Testing: FeatureExtractor.DescriptorWidthIs32Bytes
+3/12 Test: FeatureExtractor.DescriptorWidthIs32Bytes
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=FeatureExtractor.DescriptorWidthIs32Bytes" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"FeatureExtractor.DescriptorWidthIs32Bytes" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = FeatureExtractor.DescriptorWidthIs32Bytes
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from FeatureExtractor
+[ RUN      ] FeatureExtractor.DescriptorWidthIs32Bytes
+[       OK ] FeatureExtractor.DescriptorWidthIs32Bytes (36 ms)
+[----------] 1 test from FeatureExtractor (36 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (36 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"FeatureExtractor.DescriptorWidthIs32Bytes" end time: Jun 08 23:37 PDT
+"FeatureExtractor.DescriptorWidthIs32Bytes" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/12 Testing: FeatureExtractor.MaxFeaturesIsRespected
+4/12 Test: FeatureExtractor.MaxFeaturesIsRespected
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=FeatureExtractor.MaxFeaturesIsRespected" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"FeatureExtractor.MaxFeaturesIsRespected" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = FeatureExtractor.MaxFeaturesIsRespected
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from FeatureExtractor
+[ RUN      ] FeatureExtractor.MaxFeaturesIsRespected
+[       OK ] FeatureExtractor.MaxFeaturesIsRespected (36 ms)
+[----------] 1 test from FeatureExtractor (36 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (36 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"FeatureExtractor.MaxFeaturesIsRespected" end time: Jun 08 23:37 PDT
+"FeatureExtractor.MaxFeaturesIsRespected" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/12 Testing: Vault.SearchReturnsSameImageLabel
+5/12 Test: Vault.SearchReturnsSameImageLabel
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=Vault.SearchReturnsSameImageLabel" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"Vault.SearchReturnsSameImageLabel" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Vault.SearchReturnsSameImageLabel
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Vault
+[ RUN      ] Vault.SearchReturnsSameImageLabel
+[       OK ] Vault.SearchReturnsSameImageLabel (38 ms)
+[----------] 1 test from Vault (38 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (38 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"Vault.SearchReturnsSameImageLabel" end time: Jun 08 23:37 PDT
+"Vault.SearchReturnsSameImageLabel" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/12 Testing: Vault.SameImageHasHighConfidence
+6/12 Test: Vault.SameImageHasHighConfidence
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=Vault.SameImageHasHighConfidence" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"Vault.SameImageHasHighConfidence" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Vault.SameImageHasHighConfidence
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Vault
+[ RUN      ] Vault.SameImageHasHighConfidence
+[       OK ] Vault.SameImageHasHighConfidence (43 ms)
+[----------] 1 test from Vault (43 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (43 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.17 sec
+----------------------------------------------------------
+Test Passed.
+"Vault.SameImageHasHighConfidence" end time: Jun 08 23:37 PDT
+"Vault.SameImageHasHighConfidence" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/12 Testing: Vault.BlankQueryReturnsUnknown
+7/12 Test: Vault.BlankQueryReturnsUnknown
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=Vault.BlankQueryReturnsUnknown" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"Vault.BlankQueryReturnsUnknown" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Vault.BlankQueryReturnsUnknown
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Vault
+[ RUN      ] Vault.BlankQueryReturnsUnknown
+[       OK ] Vault.BlankQueryReturnsUnknown (40 ms)
+[----------] 1 test from Vault (40 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (40 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"Vault.BlankQueryReturnsUnknown" end time: Jun 08 23:37 PDT
+"Vault.BlankQueryReturnsUnknown" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/12 Testing: Vault.MultiImageEachLabelsCorrectly
+8/12 Test: Vault.MultiImageEachLabelsCorrectly
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=Vault.MultiImageEachLabelsCorrectly" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"Vault.MultiImageEachLabelsCorrectly" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Vault.MultiImageEachLabelsCorrectly
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Vault
+[ RUN      ] Vault.MultiImageEachLabelsCorrectly
+[       OK ] Vault.MultiImageEachLabelsCorrectly (52 ms)
+[----------] 1 test from Vault (52 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (52 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.18 sec
+----------------------------------------------------------
+Test Passed.
+"Vault.MultiImageEachLabelsCorrectly" end time: Jun 08 23:37 PDT
+"Vault.MultiImageEachLabelsCorrectly" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/12 Testing: Vault.AddBatchLabelsCorrectly
+9/12 Test: Vault.AddBatchLabelsCorrectly
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=Vault.AddBatchLabelsCorrectly" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"Vault.AddBatchLabelsCorrectly" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Vault.AddBatchLabelsCorrectly
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Vault
+[ RUN      ] Vault.AddBatchLabelsCorrectly
+[       OK ] Vault.AddBatchLabelsCorrectly (45 ms)
+[----------] 1 test from Vault (45 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (45 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.17 sec
+----------------------------------------------------------
+Test Passed.
+"Vault.AddBatchLabelsCorrectly" end time: Jun 08 23:37 PDT
+"Vault.AddBatchLabelsCorrectly" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/12 Testing: Vault.AddBatchAndAddMixed
+10/12 Test: Vault.AddBatchAndAddMixed
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=Vault.AddBatchAndAddMixed" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"Vault.AddBatchAndAddMixed" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Vault.AddBatchAndAddMixed
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Vault
+[ RUN      ] Vault.AddBatchAndAddMixed
+[       OK ] Vault.AddBatchAndAddMixed (54 ms)
+[----------] 1 test from Vault (54 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (54 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.18 sec
+----------------------------------------------------------
+Test Passed.
+"Vault.AddBatchAndAddMixed" end time: Jun 08 23:37 PDT
+"Vault.AddBatchAndAddMixed" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/12 Testing: Vault.AddAfterBuildAndRebuildFindsNewLabel
+11/12 Test: Vault.AddAfterBuildAndRebuildFindsNewLabel
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=Vault.AddAfterBuildAndRebuildFindsNewLabel" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"Vault.AddAfterBuildAndRebuildFindsNewLabel" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Vault.AddAfterBuildAndRebuildFindsNewLabel
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Vault
+[ RUN      ] Vault.AddAfterBuildAndRebuildFindsNewLabel
+[       OK ] Vault.AddAfterBuildAndRebuildFindsNewLabel (53 ms)
+[----------] 1 test from Vault (53 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (53 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.17 sec
+----------------------------------------------------------
+Test Passed.
+"Vault.AddAfterBuildAndRebuildFindsNewLabel" end time: Jun 08 23:37 PDT
+"Vault.AddAfterBuildAndRebuildFindsNewLabel" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/12 Testing: Vault.SaveLoadRoundtrip
+12/12 Test: Vault.SaveLoadRoundtrip
+Command: "/Users/jameskelly/Documents/imret/build/tests/imret_tests" "--gtest_filter=Vault.SaveLoadRoundtrip" "--gtest_also_run_disabled_tests"
+Directory: /Users/jameskelly/Documents/imret/build/tests
+"Vault.SaveLoadRoundtrip" start time: Jun 08 23:37 PDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/jameskelly/Documents/imret/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Vault.SaveLoadRoundtrip
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Vault
+[ RUN      ] Vault.SaveLoadRoundtrip
+[       OK ] Vault.SaveLoadRoundtrip (38 ms)
+[----------] 1 test from Vault (38 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (38 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"Vault.SaveLoadRoundtrip" end time: Jun 08 23:37 PDT
+"Vault.SaveLoadRoundtrip" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jun 08 23:37 PDT

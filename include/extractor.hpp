@@ -4,6 +4,7 @@
 
 class FeatureExtractor {
 private:
+    OrbConfig config;
     cv::Ptr<cv::ORB> orb_detector;
 
 public:

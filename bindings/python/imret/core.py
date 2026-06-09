@@ -29,8 +29,11 @@ class Vault:
             raise TypeError("Image must be a numpy ndarray (cv2 image).")
         if image_matrix.dtype != np.uint8:
             raise ValueError("Image matrix must be 8-bit unsigned integers (uint8).")
-            
         self._engine.add(image_matrix, label)
+
+    def add_batch(self, images: list, labels: list) -> None:
+        """Adds multiple images in parallel using OpenMP. Prefer over repeated add() calls."""
+        self._engine.add_batch(images, labels)
 
     def build(self) -> None:
         """Compiles the FAISS Voronoi cells. Required before searching."""
@@ -41,5 +44,21 @@ class Vault:
         """Searches the built vault for a matching image."""
         if not self._is_built:
             raise RuntimeError("You must call .build() before searching!")
-            
+
         return self._engine.search(query_matrix)
+
+    def save(self, prefix: str) -> None:
+        """Saves the built vault to <prefix>.faiss and <prefix>.meta."""
+        self._engine.save(prefix)
+
+    def load(self, prefix: str) -> None:
+        """Loads a vault from <prefix>.faiss and <prefix>.meta."""
+        self._engine.load(prefix)
+        self._is_built = True
+
+    @classmethod
+    def load_from_disk(cls, prefix: str, config=None) -> "Vault":
+        """Convenience: creates a Vault and loads from disk in one call."""
+        v = cls(config)
+        v.load(prefix)
+        return v

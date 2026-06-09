@@ -11,3 +11,5 @@ pybind11_add_module(_core src/bind.cpp)
 
 # Link the Python wrapper to the core library built by the root CMake
 target_link_libraries(_core PRIVATE imret_core)
+
+install(TARGETS _core DESTINATION imret)

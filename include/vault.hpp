@@ -10,10 +10,7 @@
 #include "imret.hpp"
 #include "extractor.hpp"
 
-// FAISS renamed its id type across versions: older/Debian builds expose it as
-// faiss::Index::idx_t, while newer builds add a top-level faiss::idx_t (a typedef
-// to the same). faiss::Index::idx_t is defined in both, so alias to that.
-using imret_idx_t = faiss::Index::idx_t;
+using imret_idx_t = faiss::idx_t;
 
 class Vault {
 private:
@@ -32,12 +29,17 @@ private:
     std::vector<uint8_t> feature_buffer;
     std::vector<imret_idx_t> id_buffer;
 
+    bool is_built = false;
+
 public:
     Vault(const OrbConfig& conf);
     
     // Step 1: Accumulate images into RAM
     void add(const cv::Mat& image, const std::string& label);
-    
+
+    // Step 1 (parallel): extract features from multiple images concurrently via OpenMP
+    void add_batch(const std::vector<cv::Mat>& images, const std::vector<std::string>& labels);
+
     // Step 2: Train Voronoi cells and push to index
     void build();
     
