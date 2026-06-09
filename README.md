@@ -77,6 +77,18 @@ MatchResult result = vault.search(query_image);
 
 `add()` and `add_batch()` can be called after `build()`. Call `build()` again afterwards to retrain the index over all accumulated data.
 
+### Stats
+
+```cpp
+Vault::Stats s = vault.stats();
+// s.n_images    — number of unique images in the vault
+// s.n_features  — total feature vectors accumulated
+// s.nlist       — number of IVF clusters (0 if not yet built)
+// s.is_built    — whether the index has been trained
+```
+
+All fields are O(1) reads from in-memory structures.
+
 ### Persistence
 
 ```cpp
@@ -127,6 +139,13 @@ vault.build()
 # Search
 result = vault.search(query_gray)
 print(result.label, result.confidence, result.fallback_used)
+
+# Vault stats (all O(1))
+s = vault.stats()
+print(s["n_images"])    # images in the vault
+print(s["n_features"])  # total ORB descriptor vectors stored
+print(s["nlist"])       # IVF Voronoi clusters (0 before build)
+print(s["is_built"])    # whether the index has been trained
 
 # Save and load
 vault.save("/tmp/my_vault")
