@@ -28,8 +28,17 @@ This produces `build/imret_cli` and `build/libimret_core.a`.
 
 ### Running the tests
 
+C++ tests:
+
 ```bash
 ctest --test-dir build --output-on-failure
+```
+
+Python binding tests (requires imret installed and pytest):
+
+```bash
+pip install pytest
+python -m pytest bindings/python/tests/ -v
 ```
 
 ## C++ API
