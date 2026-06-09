@@ -1,5 +1,0 @@
-if(EXISTS "/Users/jameskelly/Documents/imret/build/tests/imret_tests[1]_tests.cmake")
-  include("/Users/jameskelly/Documents/imret/build/tests/imret_tests[1]_tests.cmake")
-else()
-  add_test(imret_tests_NOT_BUILT imret_tests_NOT_BUILT)
-endif()
