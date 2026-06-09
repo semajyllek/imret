@@ -1,8 +1,8 @@
 #pragma once
 #include <opencv2/opencv.hpp>
-#include <faiss/Index.h>
 #include <faiss/IndexBinaryIVF.h>
 #include <faiss/IndexBinaryFlat.h>
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 #include <string>
@@ -10,7 +10,7 @@
 #include "imret.hpp"
 #include "extractor.hpp"
 
-using imret_idx_t = faiss::idx_t;
+using imret_idx_t = int64_t;
 
 class Vault {
 private:
