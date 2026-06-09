@@ -104,11 +104,28 @@ def test_save_load_preserves_stats(built_vault):
     with tempfile.TemporaryDirectory() as d:
         prefix = f"{d}/vault"
         built_vault.save(prefix)
-        loaded = imret.Vault.load_from_disk(prefix, imret.OrbConfig())
+        loaded   = imret.Vault.load_from_disk(prefix, imret.OrbConfig())
         orig     = built_vault.stats()
         loaded_s = loaded.stats()
-        assert loaded_s["n_images"] == orig["n_images"]
-        assert loaded_s["is_built"] is True
-        # n_features (raw descriptor buffer) is not serialised — only the built
-        # FAISS index is saved, so n_features is 0 after load. Search still works.
-        assert loaded_s["n_features"] == 0
+        assert loaded_s["n_images"]   == orig["n_images"]
+        assert loaded_s["n_features"] == orig["n_features"]
+        assert loaded_s["nlist"]      == orig["nlist"]
+        assert loaded_s["is_built"]   is True
+
+
+def test_incremental_add_after_load():
+    cfg = imret.OrbConfig()
+    with tempfile.TemporaryDirectory() as d:
+        prefix = f"{d}/vault"
+        v = imret.Vault(cfg)
+        v.add(_textured(0), "img_0")
+        v.build()
+        v.save(prefix)
+
+        v2 = imret.Vault.load_from_disk(prefix, cfg)
+        v2.add(_textured(1), "img_1")
+        v2.build()
+
+        assert v2.search(_textured(0)).label == "img_0"
+        assert v2.search(_textured(1)).label == "img_1"
+        assert v2.stats()["n_images"] == 2

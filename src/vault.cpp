@@ -63,27 +63,27 @@ void Vault::add_batch(const std::vector<cv::Mat>& images,
 }
 
 void Vault::build() {
-    int total_features = id_buffer.size();
+    int total_features = static_cast<int>(id_buffer.size());
     if (total_features == 0) return;
 
     const int d = 256; // 256 bits = 32 bytes (ORB descriptor dimension)
-    int nlist = std::min(4096, std::max(1, total_features / 39));
-    
-    // 2. Initialize the Quantizer (The map of the cluster centers)
-    // IndexBinaryFlat does a brute-force search across the centroids to find the closest one
-    quantizer = std::make_unique<faiss::IndexBinaryFlat>(d);
 
-    // 3. Initialize the main IVF index, linking it to the quantizer
-    index = std::make_unique<faiss::IndexBinaryIVF>(quantizer.get(), d, nlist);
+    if (is_built && index) {
+        // Vault was loaded from disk: the trained index already exists.
+        // Add new vectors into the existing Voronoi cells without retraining k-means.
+        index->add_with_ids(total_features, feature_buffer.data(), id_buffer.data());
+    } else {
+        // Fresh build: train k-means centroids then populate the index.
+        int nlist = std::min(4096, std::max(1, total_features / 39));
+        quantizer = std::make_unique<faiss::IndexBinaryFlat>(d);
+        index = std::make_unique<faiss::IndexBinaryIVF>(quantizer.get(), d, nlist);
+        index->train(total_features, feature_buffer.data());
+        index->add_with_ids(total_features, feature_buffer.data(), id_buffer.data());
+        is_built = true;
+    }
 
-    // 4. Train the Voronoi cells 
-    // This finds the optimal 'nlist' cluster centers for our binary dataset
-    index->train(total_features, feature_buffer.data());
-
-    // 5. Add the actual vectors into their assigned cells
-    index->add_with_ids(total_features, feature_buffer.data(), id_buffer.data());
-
-    is_built = true;
+    feature_buffer.clear();
+    id_buffer.clear();
 }
 
 
@@ -149,7 +149,8 @@ MatchResult Vault::search(const cv::Mat& image) {
 Vault::Stats Vault::stats() const {
     return Stats{
         static_cast<int>(id_to_label.size()),
-        static_cast<int64_t>(id_buffer.size()),
+        is_built && index ? static_cast<int64_t>(index->ntotal)
+                          : static_cast<int64_t>(id_buffer.size()),
         index ? static_cast<int>(index->nlist) : 0,
         is_built,
     };

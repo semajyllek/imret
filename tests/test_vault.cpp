@@ -132,7 +132,33 @@ TEST(Vault, AddAfterBuildAndRebuildFindsNewLabel) {
     EXPECT_EQ(vault.search(make_grid()).label, "grid");
 }
 
-// --- Persistence test ---
+// --- Persistence + incremental add ---
+
+TEST(Vault, SaveLoadIncrementalAddPreservesOriginal) {
+    const std::string prefix = "/tmp/imret_test_incremental";
+
+    {
+        OrbConfig cfg;
+        Vault vault(cfg);
+        vault.add(make_checkerboard(), "checkerboard");
+        vault.build();
+        vault.save(prefix);
+    }
+
+    {
+        OrbConfig cfg;
+        Vault vault(cfg);
+        vault.load(prefix);
+        vault.add(make_grid(), "grid");
+        vault.build();
+
+        EXPECT_EQ(vault.search(make_checkerboard()).label, "checkerboard");
+        EXPECT_EQ(vault.search(make_grid()).label, "grid");
+    }
+
+    std::remove((prefix + ".faiss").c_str());
+    std::remove((prefix + ".meta").c_str());
+}
 
 TEST(Vault, SaveLoadRoundtrip) {
     const std::string prefix = "/tmp/imret_test_roundtrip";
