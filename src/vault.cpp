@@ -71,7 +71,16 @@ void Vault::build() {
     if (is_built && index) {
         // Vault was loaded from disk: the trained index already exists.
         // Add new vectors into the existing Voronoi cells without retraining k-means.
+        int64_t prev_ntotal = index->ntotal;
         index->add_with_ids(total_features, feature_buffer.data(), id_buffer.data());
+        if (index->ntotal != prev_ntotal + total_features) {
+            throw std::runtime_error(
+                "Vault::build(): incremental add_with_ids did not preserve the "
+                "existing index (ntotal " + std::to_string(prev_ntotal) + " -> " +
+                std::to_string(index->ntotal) + ", expected +" +
+                std::to_string(total_features) + "). Existing vectors may have "
+                "been discarded.");
+        }
     } else {
         // Fresh build: train k-means centroids then populate the index.
         int nlist = std::min(4096, std::max(1, total_features / 39));
