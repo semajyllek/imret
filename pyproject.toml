@@ -52,7 +52,7 @@ bash /tmp/miniforge.sh -b -p /opt/conda
 /opt/conda/bin/conda install -y -c conda-forge "faiss-cpu>=1.7" "libopencv>=4.5"
 """
 environment = { CMAKE_PREFIX_PATH = "/opt/conda", LD_LIBRARY_PATH = "/opt/conda/lib" }
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
+repair-wheel-command = "auditwheel repair --plat manylinux_2_35_x86_64 -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.macos]
 archs = ["arm64"]
