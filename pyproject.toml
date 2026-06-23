@@ -57,4 +57,4 @@ repair-wheel-command = "auditwheel show {wheel} && auditwheel repair --plat many
 [tool.cibuildwheel.macos]
 archs = ["arm64"]
 before-all = "brew install faiss opencv libomp"
-environment = { MACOSX_DEPLOYMENT_TARGET = "15.0" }
+environment = { MACOSX_DEPLOYMENT_TARGET = "15" }
