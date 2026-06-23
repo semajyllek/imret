@@ -115,9 +115,7 @@ The `.meta` file stores the `OrbConfig` alongside the label map, so a loaded vau
 pip install imret
 ```
 
-Pre-built binary wheels are available for Linux x86_64 and macOS arm64, covering Python 3.9–3.12. Google Colab is supported without any additional setup.
-
-Until imret is published to PyPI, install from source — see [Building from source (Python)](#building-from-source-python).
+Pre-built binary wheels are available for Linux x86_64 and macOS arm64, covering Python 3.9–3.13. Google Colab is supported without any additional setup.
 
 ### Usage
 
@@ -165,7 +163,7 @@ vault2 = imret.Vault.load_from_disk("/tmp/my_vault", cfg)
 
 ### Building from source
 
-Requirements: Python >= 3.8, pybind11, scikit-build-core, OpenCV, FAISS, OpenMP.
+Requirements: Python >= 3.9, pybind11, scikit-build-core, OpenCV, FAISS, OpenMP.
 
 On macOS, install OpenMP first:
 
