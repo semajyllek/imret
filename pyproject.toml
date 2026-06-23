@@ -56,5 +56,10 @@ repair-wheel-command = "auditwheel show {wheel} && auditwheel repair --plat many
 
 [tool.cibuildwheel.macos]
 archs = ["arm64"]
-before-all = "brew install faiss opencv libomp"
-environment = { MACOSX_DEPLOYMENT_TARGET = "15" }
+before-all = """
+curl -fsSL https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh -o /tmp/miniforge.sh
+bash /tmp/miniforge.sh -b -p /opt/conda
+/opt/conda/bin/conda install -y -c conda-forge "faiss-cpu>=1.7" "libopencv>=4.5" libomp
+"""
+environment = { CMAKE_PREFIX_PATH = "/opt/conda", MACOSX_DEPLOYMENT_TARGET = "11.0" }
+repair-wheel-command = "DYLD_LIBRARY_PATH=/opt/conda/lib delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
