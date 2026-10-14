@@ -56,12 +56,13 @@ before-all = """
 set -eux
 curl -fsSL https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o /tmp/miniforge.sh
 bash /tmp/miniforge.sh -b -p /opt/conda
-/opt/conda/bin/conda install -y -c conda-forge "libopencv>=4.5,<5=*headless*" libopenblas
+/opt/conda/bin/conda install -y -c conda-forge "libopencv>=4.5,<5=*headless*" "libblas=*=*openblas" "liblapack=*=*openblas"
+ls -l /opt/conda/lib/libblas* /opt/conda/lib/liblapack*
 git clone --depth 1 --branch v1.14.3 https://github.com/facebookresearch/faiss.git /tmp/faiss
 cmake -S /tmp/faiss -B /tmp/faiss/build \
   -DFAISS_OPT_LEVEL=dd -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF \
   -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release \
-  -DBLA_VENDOR=OpenBLAS -DCMAKE_PREFIX_PATH=/opt/conda -DCMAKE_INSTALL_PREFIX=/opt/faiss
+  -DBLA_VENDOR=Generic -DCMAKE_PREFIX_PATH=/opt/conda -DCMAKE_INSTALL_PREFIX=/opt/faiss
 cmake --build /tmp/faiss/build --target faiss -j"$(nproc)"
 cmake --install /tmp/faiss/build
 """
