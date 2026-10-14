@@ -117,6 +117,8 @@ pip install imret
 
 Pre-built binary wheels are available for Linux x86_64 and macOS arm64, covering Python 3.9–3.13. Google Colab is supported without any additional setup.
 
+The Linux wheel needs an x86-64-v2 CPU (SSE4.2 + POPCNT, any x86 CPU from roughly 2009 on). Its bundled FAISS is built with runtime SIMD dispatch, so AVX2/AVX-512 are used when present. 0.1.1's Linux wheel shipped a generic FAISS without hardware popcount, which made search ~20x slower; upgrade to 0.1.4 or later.
+
 ### Usage
 
 ```python

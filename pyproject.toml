@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "imret"
-version = "0.1.1"
+version = "0.1.4"
 description = "Approximate image retrieval using ORB descriptors and FAISS IVF indexing."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -42,16 +42,30 @@ wheel.packages = ["bindings/python/imret"]
 [tool.cibuildwheel]
 build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
 skip = "*-manylinux_i686 *-musllinux*"
+test-requires = ["pytest"]
+test-command = "pytest {project}/bindings/python/tests -q && python {project}/scripts/check_wheel_simd.py"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 manylinux-x86_64-image = "manylinux_2_28"
+# FAISS is built from source with runtime SIMD dispatch (FAISS_OPT_LEVEL=dd): an
+# x86-64-v2 baseline (SSE4.2 + hardware popcnt) plus AVX2/AVX-512 kernels picked at
+# runtime. conda-forge's libfaiss is a generic x86-64 build with no hardware popcnt,
+# which made Hamming search ~20x slower in 0.1.1 (scripts/check_wheel_simd.py guards it).
 before-all = """
+set -eux
 curl -fsSL https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o /tmp/miniforge.sh
 bash /tmp/miniforge.sh -b -p /opt/conda
-/opt/conda/bin/conda install -y -c conda-forge "faiss-cpu>=1.7" "libopencv>=4.5,<5=*headless*"
+/opt/conda/bin/conda install -y -c conda-forge "libopencv>=4.5,<5=*headless*" libopenblas
+git clone --depth 1 --branch v1.14.3 https://github.com/facebookresearch/faiss.git /tmp/faiss
+cmake -S /tmp/faiss -B /tmp/faiss/build \
+  -DFAISS_OPT_LEVEL=dd -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF \
+  -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release \
+  -DBLA_VENDOR=OpenBLAS -DCMAKE_PREFIX_PATH=/opt/conda -DCMAKE_INSTALL_PREFIX=/opt/faiss
+cmake --build /tmp/faiss/build --target faiss -j"$(nproc)"
+cmake --install /tmp/faiss/build
 """
-environment = { CMAKE_PREFIX_PATH = "/opt/conda", LD_LIBRARY_PATH = "/opt/conda/lib" }
+environment = { CMAKE_PREFIX_PATH = "/opt/faiss:/opt/conda", LD_LIBRARY_PATH = "/opt/faiss/lib:/opt/faiss/lib64:/opt/conda/lib" }
 repair-wheel-command = "auditwheel repair --plat manylinux_2_39_x86_64 -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.macos]
