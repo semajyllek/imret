@@ -44,6 +44,9 @@ build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
 skip = "*-manylinux_i686 *-musllinux*"
 test-requires = ["pytest"]
 test-command = "pytest {project}/bindings/python/tests -q && python {project}/scripts/check_wheel_simd.py"
+# Linux wheels are manylinux_2_39 and can't be installed in the 2_28 build container;
+# they're tested on an ubuntu-24.04 runner instead (test_linux_wheels in release.yml).
+test-skip = "*-manylinux_x86_64"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
