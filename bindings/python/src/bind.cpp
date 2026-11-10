@@ -62,7 +62,7 @@ PYBIND11_MODULE(_core, m) {
             return self.search(mat);
         })
         .def("save", &Vault::save)
-        .def("load", &Vault::load)
+        .def("load", &Vault::load, py::arg("prefix"), py::arg("keep_search_settings") = false)
         .def("stats", [](const Vault& self) {
             auto s = self.stats();
             py::dict d;

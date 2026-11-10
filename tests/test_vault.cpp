@@ -234,3 +234,70 @@ TEST(Vault, ConcurrentSearchesMatchSerialResults) {
         }
     }
 }
+
+// --- Search settings on load ---
+
+// A vault built so every search takes the deep tier (threshold above 1).
+static void save_always_deep_vault(const std::string& prefix) {
+    OrbConfig cfg;
+    cfg.confidence_threshold = 1.1f;
+    Vault vault(cfg);
+    vault.add(make_checkerboard(), "checkerboard");
+    vault.add(make_grid(), "grid");
+    vault.build();
+    vault.save(prefix);
+}
+
+TEST(Vault, LoadUsesSavedSearchSettingsByDefault) {
+    const std::string prefix = "/tmp/imret_test_load_saved";
+    save_always_deep_vault(prefix);
+
+    OrbConfig cfg;
+    cfg.confidence_threshold = 0.0f;   // would never go deep, but isn't asked to apply
+    Vault vault(cfg);
+    vault.load(prefix);
+    EXPECT_TRUE(vault.search(make_checkerboard()).fallback_used);
+
+    std::remove((prefix + ".faiss").c_str());
+    std::remove((prefix + ".meta").c_str());
+}
+
+TEST(Vault, LoadCanKeepTheCallersSearchSettings) {
+    const std::string prefix = "/tmp/imret_test_load_keep";
+    save_always_deep_vault(prefix);
+
+    OrbConfig cfg;
+    cfg.confidence_threshold = 0.0f;   // never go deep
+    Vault vault(cfg);
+    vault.load(prefix, /*keep_search_settings=*/true);
+    MatchResult r = vault.search(make_checkerboard());
+    EXPECT_FALSE(r.fallback_used);
+    EXPECT_EQ(r.label, "checkerboard");
+
+    std::remove((prefix + ".faiss").c_str());
+    std::remove((prefix + ".meta").c_str());
+}
+
+TEST(Vault, LoadAlwaysExtractsWithTheSavedFeatureSettings) {
+    const std::string prefix = "/tmp/imret_test_load_features";
+    OrbConfig built;
+    built.max_features = 300;
+    float before;
+    {
+        Vault vault(built);
+        vault.add(make_checkerboard(), "checkerboard");
+        vault.add(make_grid(), "grid");
+        vault.build();
+        before = vault.search(make_checkerboard()).confidence;
+        vault.save(prefix);
+    }
+
+    OrbConfig other;
+    other.max_features = 40;            // a mismatch the vault must not use
+    Vault vault(other);
+    vault.load(prefix, /*keep_search_settings=*/true);
+    EXPECT_EQ(vault.search(make_checkerboard()).confidence, before);
+
+    std::remove((prefix + ".faiss").c_str());
+    std::remove((prefix + ".meta").c_str());
+}

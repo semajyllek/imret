@@ -55,14 +55,22 @@ class Vault:
         """Returns n_images, n_features, nlist, is_built."""
         return self._engine.stats()
 
-    def load(self, prefix: str) -> None:
-        """Loads a vault from <prefix>.faiss and <prefix>.meta."""
-        self._engine.load(prefix)
+    def load(self, prefix: str, keep_search_settings: bool = False) -> None:
+        """Loads a vault from <prefix>.faiss and <prefix>.meta.
+
+        Extraction settings (max_features, resize_dim) always come from the
+        saved vault. Search settings (fast_cells, deep_cells,
+        max_hamming_distance, confidence_threshold) do too, unless
+        keep_search_settings: then this Vault's own config's are used."""
+        self._engine.load(prefix, keep_search_settings)
         self._is_built = True
 
     @classmethod
     def load_from_disk(cls, prefix: str, config=None) -> "Vault":
-        """Convenience: creates a Vault and loads from disk in one call."""
+        """Convenience: creates a Vault and loads from disk in one call.
+
+        With a config, its search settings apply (tune them without
+        rebuilding); without one, the saved vault's settings are used."""
         v = cls(config)
-        v.load(prefix)
+        v.load(prefix, keep_search_settings=config is not None)
         return v

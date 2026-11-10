@@ -199,7 +199,7 @@ void Vault::save(const std::string& prefix) {
 }
 
 // --- LOAD ---
-void Vault::load(const std::string& prefix) {
+void Vault::load(const std::string& prefix, bool keep_search_settings) {
     // 1. Load the FAISS Index
     faiss::IndexBinary* raw_index = faiss::read_index_binary((prefix + ".faiss").c_str());
     index.reset(dynamic_cast<faiss::IndexBinaryIVF*>(raw_index));
@@ -210,7 +210,18 @@ void Vault::load(const std::string& prefix) {
         throw std::runtime_error("Could not find metadata file: " + prefix + ".meta");
     }
 
-    meta_in.read(reinterpret_cast<char*>(&config), sizeof(OrbConfig));
+    // The saved config's extraction settings define the indexed features, so
+    // they always come from the file, and the extractor is rebuilt with them.
+    // Search settings are query-time tuning: the caller's when asked to keep them.
+    OrbConfig saved;
+    meta_in.read(reinterpret_cast<char*>(&saved), sizeof(OrbConfig));
+    if (keep_search_settings) {
+        config.max_features = saved.max_features;
+        config.resize_dim   = saved.resize_dim;
+    } else {
+        config = saved;
+    }
+    extractor = FeatureExtractor(config);
     meta_in.read(reinterpret_cast<char*>(&next_id), sizeof(imret_idx_t));
 
     size_t map_size;

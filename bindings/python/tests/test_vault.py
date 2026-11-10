@@ -147,3 +147,27 @@ def test_threaded_searches_match_serial(built_vault):
     serial = [run(q) for q in queries]
     with ThreadPoolExecutor(max_workers=4) as pool:
         assert list(pool.map(run, queries)) == serial
+
+
+# ── Search settings on load ───────────────────────────────────────────
+
+def test_load_from_disk_applies_the_given_search_settings():
+    """A config passed to load_from_disk tunes search without a rebuild;
+    without one, the saved vault's settings are used."""
+    cfg = imret.OrbConfig()
+    cfg.confidence_threshold = 1.1          # every search goes deep
+    v = imret.Vault(cfg)
+    v.add(_textured(0), "img_0")
+    v.add(_textured(1), "img_1")
+    v.build()
+    with tempfile.TemporaryDirectory() as d:
+        prefix = f"{d}/vault"
+        v.save(prefix)
+
+        assert imret.Vault.load_from_disk(prefix).search(_textured(0)).fallback_used
+
+        never_deep = imret.OrbConfig()
+        never_deep.confidence_threshold = 0.0
+        result = imret.Vault.load_from_disk(prefix, never_deep).search(_textured(0))
+        assert not result.fallback_used
+        assert result.label == "img_0"

@@ -50,6 +50,10 @@ public:
     Stats stats() const;
 
     void save(const std::string& prefix);
-    void load(const std::string& prefix);
+    // Restores a saved vault. Extraction settings (max_features, resize_dim)
+    // always come from the file. Search settings (fast_cells, deep_cells,
+    // max_hamming_distance, confidence_threshold) come from the file too,
+    // unless keep_search_settings: then this vault's own config's are used.
+    void load(const std::string& prefix, bool keep_search_settings = false);
 
 };

@@ -107,7 +107,7 @@ vault.save("/path/to/prefix");   // writes prefix.faiss and prefix.meta
 vault.load("/path/to/prefix");   // restores the index and label map; no rebuild needed
 ```
 
-The `.meta` file stores the `OrbConfig` alongside the label map, so a loaded vault always uses the config it was originally built with.
+The `.meta` file stores the `OrbConfig` alongside the label map. A loaded vault always extracts features with the saved `max_features` and `resize_dim`, since they define what was indexed. The search settings (`fast_cells`, `deep_cells`, `max_hamming_distance`, `confidence_threshold`) are query-time tuning: they also come from the file, unless you load with `vault.load(prefix, /*keep_search_settings=*/true)`, which keeps the vault's own config's. In Python, `Vault.load_from_disk(prefix, config)` does that whenever a config is given, so you can retune search without rebuilding (since 0.1.6; before, the saved settings always won and a passed config's search settings were silently ignored).
 
 ## Python
 
