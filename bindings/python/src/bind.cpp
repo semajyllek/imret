@@ -53,8 +53,13 @@ PYBIND11_MODULE(_core, m) {
         })
         // Release the GIL during training so Python doesn't freeze
         .def("build", &Vault::build, py::call_guard<py::gil_scoped_release>())
-        .def("search", [](Vault& self, py::array_t<uint8_t> img) {
-            return self.search(numpy_uint8_to_cv_mat(img));
+        // Release the GIL while searching, so Python threads (e.g. a threaded
+        // web server) can search one vault at the same time. `img` stays
+        // referenced by this call, so the Mat's buffer outlives the search.
+        .def("search", [](const Vault& self, py::array_t<uint8_t> img) {
+            cv::Mat mat = numpy_uint8_to_cv_mat(img);
+            py::gil_scoped_release release;
+            return self.search(mat);
         })
         .def("save", &Vault::save)
         .def("load", &Vault::load)

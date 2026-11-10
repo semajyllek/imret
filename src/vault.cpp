@@ -97,7 +97,7 @@ void Vault::build() {
 
 
 
-MatchResult Vault::search(const cv::Mat& image) {
+MatchResult Vault::search(const cv::Mat& image) const {
     if (!is_built)
         throw std::runtime_error("Must call build() before search().");
 
@@ -110,9 +110,14 @@ MatchResult Vault::search(const cv::Mat& image) {
     std::vector<int32_t> distances(nq);
     std::vector<imret_idx_t> labels(nq);
 
+    // The number of cells to probe goes with each call rather than onto the
+    // shared index (index->nprobe), so concurrent searches can't change each
+    // other's tier.
+    faiss::SearchParametersIVF params;
+
     // --- Tier 1: Fast Search ---
-    index->nprobe = config.fast_cells;
-    index->search(nq, descriptors.data, 1, distances.data(), labels.data());
+    params.nprobe = config.fast_cells;
+    index->search(nq, descriptors.data, 1, distances.data(), labels.data(), &params);
 
     auto tally_votes = [&]() -> std::pair<imret_idx_t, int> {
         std::unordered_map<imret_idx_t, int> tallies;
@@ -138,8 +143,8 @@ MatchResult Vault::search(const cv::Mat& image) {
     // --- Tier 2: Deep Fallback ---
     if (confidence < config.confidence_threshold) {
         fallback = true;
-        index->nprobe = config.deep_cells;
-        index->search(nq, descriptors.data, 1, distances.data(), labels.data());
+        params.nprobe = config.deep_cells;
+        index->search(nq, descriptors.data, 1, distances.data(), labels.data(), &params);
         
         auto fallback_result = tally_votes();
         best_id = fallback_result.first;
@@ -151,7 +156,7 @@ MatchResult Vault::search(const cv::Mat& image) {
         return MatchResult{"Unknown", 0.0f, fallback};
     }
 
-    return MatchResult{id_to_label[best_id], confidence, fallback};
+    return MatchResult{id_to_label.at(best_id), confidence, fallback};
 }
 
 

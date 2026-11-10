@@ -86,6 +86,8 @@ MatchResult result = vault.search(query_image);
 
 `add()` and `add_batch()` can be called after `build()`. Call `build()` again afterwards to retrain the index over all accumulated data.
 
+**Threads:** `search()` is read-only, so several threads can search one built vault at the same time (since 0.1.5; before that each search set the probe count on the shared index, and concurrent searches could crash or use the wrong tier). Don't search while `add()`, `add_batch()`, `build()` or `load()` is running. The Python binding releases the GIL during `search()`, so a threaded Python server can serve concurrent searches without a lock.
+
 ### Stats
 
 ```cpp

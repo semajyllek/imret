@@ -129,3 +129,21 @@ def test_incremental_add_after_load():
         assert v2.search(_textured(0)).label == "img_0"
         assert v2.search(_textured(1)).label == "img_1"
         assert v2.stats()["n_images"] == 2
+
+
+# ── Threads ───────────────────────────────────────────────────────────
+
+def test_threaded_searches_match_serial(built_vault):
+    """search() releases the GIL and is read-only: threads searching one vault
+    get exactly what each search gets alone."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    queries = [_textured(i % 3) for i in range(30)] + [_blank()]
+
+    def run(q):
+        r = built_vault.search(q)
+        return r.label, r.confidence, r.fallback_used
+
+    serial = [run(q) for q in queries]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        assert list(pool.map(run, queries)) == serial

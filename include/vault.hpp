@@ -44,7 +44,9 @@ public:
     void add(const cv::Mat& image, const std::string& label);
     void add_batch(const std::vector<cv::Mat>& images, const std::vector<std::string>& labels);
     void build();
-    MatchResult search(const cv::Mat& image);
+    // Read-only: safe to call from several threads at once on a built vault
+    // (not while add/build/load run).
+    MatchResult search(const cv::Mat& image) const;
     Stats stats() const;
 
     void save(const std::string& prefix);

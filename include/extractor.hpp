@@ -5,9 +5,9 @@
 class FeatureExtractor {
 private:
     OrbConfig config;
-    cv::Ptr<cv::ORB> orb_detector;
 
 public:
     FeatureExtractor(const OrbConfig& config);
-    cv::Mat extract(const cv::Mat& image);
+    // safe to call from several threads at once
+    cv::Mat extract(const cv::Mat& image) const;
 };
