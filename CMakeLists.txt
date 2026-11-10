@@ -42,9 +42,11 @@ if(APPLE AND LIBOMP_PREFIX)
 endif()
 
 if(NOT SKBUILD)
-    # 2. Build the CLI executable
+    # 2. Build the CLI executable. It reads image files (cv::imread), which is
+    # imgcodecs — not needed by the library, so it's linked here only.
+    find_package(OpenCV REQUIRED COMPONENTS imgcodecs)
     add_executable(imret_cli main.cpp)
-    target_link_libraries(imret_cli PRIVATE imret_core)
+    target_link_libraries(imret_cli PRIVATE imret_core opencv_imgcodecs)
 
     # 3. Tests
     enable_testing()
